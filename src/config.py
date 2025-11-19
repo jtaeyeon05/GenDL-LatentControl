@@ -1,4 +1,5 @@
 import os
+import torch
 
 
 working_dir = os.getcwd()
@@ -10,9 +11,12 @@ celebA_image_path = f"{celebA_path}/img_align_celeba/img_align_celeba"
 celebA_attr_path = f"{celebA_path}/list_attr_celeba.csv"
 output_path = f"{project_dir}/output"
 
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 model_latent_dim = 128
 batch_size = 128
 image_size = 128
 
 scale = 3
-shuffle = False
+num_samples = 100
+shuffle = True

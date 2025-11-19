@@ -1,5 +1,4 @@
 import os
-import torch
 
 import config
 from core.dataset import get_celeba_loader
@@ -14,7 +13,7 @@ def main():
         model_path = config.model_path, 
         model_latent_dim = config.model_latent_dim,
         image_size = config.image_size,
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        device = config.device
     )
 
     if not os.path.exists(config.celebA_image_path) or not os.path.exists(config.celebA_attr_path):

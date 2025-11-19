@@ -42,7 +42,7 @@ def test():
         recon = model.decode(z).clamp(0.0, 1.0)
 
     grid = make_grid(torch.cat([images.cpu(), recon.cpu()]), nrow=num_samples)
-    out_path = os.path.join(config.output_path, 'test.png')
+    out_path = os.path.join(config.output_path, 'test_128_10.png')
     save_image(grid, out_path)
     print(f"[Test] Test Success ({out_path})")
 
