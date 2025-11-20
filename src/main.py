@@ -23,10 +23,10 @@ def main() -> None:
     true_celeba_loader, false_celeba_loader, test_celeba_loader = get_celeba_loader_set(
         celebA_image_path = config.celebA_image_path,
         celebA_attr_path = config.celebA_attr_path,
-        batch_size=config.batch_size,
-        image_size=config.image_size,
-        filter_attr = CelebAFeature.Eyeglasses,
-        filter_value = True,
+        batch_size = config.batch_size,
+        image_size = config.image_size,
+        filter_attr = config.filter_attr,
+        filter_value = config.filter_value,
         shuffle = config.shuffle,
         num_calc_samples = config.num_calc_samples,
         num_samples = config.num_samples
@@ -37,7 +37,7 @@ def main() -> None:
         true_celeba_loader = true_celeba_loader,
         false_celeba_loader = false_celeba_loader,
         test_celeba_loader = test_celeba_loader,
-        output_path = os.path.join(config.output_path, 'test_tmp.png'),
+        output_path = os.path.join(config.output_path, 'test.png'),
         scale = config.scale,
         device = config.device
     )

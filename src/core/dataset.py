@@ -1,9 +1,11 @@
 import os
+import numpy as np
 import pandas as pd
 from PIL import Image
 from enum import Enum
 from typing import Any, Callable, Optional
 from torch.utils.data import Dataset, DataLoader
+from torch.utils.data.sampler import SubsetRandomSampler
 from torchvision import transforms
 
 
@@ -58,7 +60,8 @@ class CelebADataset(Dataset):
             transform: Optional[Callable] = None, 
             filter_attr: Optional[CelebAFeature] = None, 
             filter_value: Optional[bool] = None, 
-            num_calc_samples: Optional[int] = None
+            num_calc_samples: Optional[int] = None,
+            shuffle: bool = False
         ):
         self.celebA_image_path = celebA_image_path
         self.celebA_attr_path = celebA_attr_path
@@ -80,6 +83,9 @@ class CelebADataset(Dataset):
         else:
             self.image_list = self.attr_df["image_id"].tolist()
 
+        if shuffle:
+            np.random.shuffle(self.image_list)
+        
         if self.num_calc_samples:
             self.image_list = self.image_list[:self.num_calc_samples]
         
@@ -108,7 +114,7 @@ def get_celeba_loader(
         image_size: int = 64,
         filter_attr: Optional[CelebAFeature] = None, 
         filter_value: Optional[bool] = None,
-        shuffle: bool = False,
+        shuffle: bool = True,
         num_calc_samples: Optional[int] = None
     ) -> DataLoader:
     transform = transforms.Compose([
@@ -117,22 +123,22 @@ def get_celeba_loader(
     ])
     
     dataset = CelebADataset(
-        celebA_image_path=celebA_image_path,
-        celebA_attr_path=celebA_attr_path,
-        transform=transform,
-        filter_attr=filter_attr,
-        filter_value=filter_value,
-        num_calc_samples=num_calc_samples
+        celebA_image_path = celebA_image_path,
+        celebA_attr_path = celebA_attr_path,
+        transform = transform,
+        filter_attr = filter_attr,
+        filter_value = filter_value,
+        num_calc_samples = num_calc_samples,
+        shuffle = shuffle
     )
     
     dataloader = DataLoader(
         dataset,
-        batch_size=batch_size,
-        shuffle=shuffle,
-        num_workers=8,
-        pin_memory=True
+        batch_size = batch_size,
+        num_workers = 8,
+        pin_memory = True
     )
-    
+
     print(f"[Dataset] get_celeba_loader success {f"({filter_attr.value}={1 if filter_value else -1})" if filter_attr is not None and filter_value is not None else ""}")
     return dataloader
 
@@ -148,7 +154,7 @@ def get_celeba_loader_set(
         num_calc_samples: Optional[int] = None,
         num_samples: int = 8
     ) -> tuple[DataLoader, DataLoader, DataLoader]:
-    true_celebA_loader =  get_celeba_loader(
+    true_celebA_loader = get_celeba_loader(
         celebA_image_path = celebA_image_path,
         celebA_attr_path = celebA_attr_path,
         batch_size = batch_size,
@@ -160,7 +166,7 @@ def get_celeba_loader_set(
     )
     print(f"[Dataset] true_celebA_loader loaded ({len(true_celebA_loader.dataset)})")
 
-    false_celebA_loader =  get_celeba_loader(
+    false_celebA_loader = get_celeba_loader(
         celebA_image_path = celebA_image_path,
         celebA_attr_path = celebA_attr_path,
         batch_size = batch_size,
@@ -172,7 +178,7 @@ def get_celeba_loader_set(
     )
     print(f"[Dataset] false_celebA_loader loaded ({len(false_celebA_loader.dataset)})")
 
-    test_celebA_loader =  get_celeba_loader(
+    test_celebA_loader = get_celeba_loader(
         celebA_image_path = celebA_image_path,
         celebA_attr_path = celebA_attr_path,
         batch_size = batch_size,
@@ -182,7 +188,7 @@ def get_celeba_loader_set(
         shuffle = shuffle,
         num_calc_samples = num_samples
     )
-    print(f"[Dataset] false_celebA_loader loaded ({len(false_celebA_loader.dataset)})")
+    print(f"[Dataset] test_celebA_loader loaded ({len(test_celebA_loader.dataset)})")
 
     return true_celebA_loader, false_celebA_loader, test_celebA_loader
 
