@@ -7,8 +7,8 @@ import torch.nn.functional as F
 class VAE(nn.Module):
     def __init__(
             self, 
-            latent_dim=128, 
-            image_size=64
+            latent_dim: int = 128, 
+            image_size: int = 64
         ):
         super(VAE, self).__init__()
         self.latent_dim = latent_dim
@@ -47,25 +47,38 @@ class VAE(nn.Module):
             nn.Sigmoid()
         )
         
-    def encode(self, x):
+    def encode(
+            self,
+            x: torch.Tensor
+        ) -> tuple[torch.Tensor, torch.Tensor]:
         x_enc = self.encoder(x)
         x_enc = torch.flatten(x_enc, start_dim=1)
         mu = self.fc_mu(x_enc)
         logvar = self.fc_logvar(x_enc)
         return mu, logvar
     
-    def reparameterize(self, mu, logvar):
+    def reparameterize(
+            self, 
+            mu: torch.Tensor, 
+            logvar: torch.Tensor
+        ) -> torch.Tensor:
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         return mu + eps * std
     
-    def decode(self, z):
+    def decode(
+            self, 
+            z: torch.Tensor
+        ) -> torch.Tensor:
         x_dec = self.decoder_input(z)
         x_dec = x_dec.reshape(-1, 256, self.dynamic_size, self.dynamic_size)
         x_recon = self.decoder(x_dec)
         return x_recon
     
-    def forward(self, x):
+    def forward(
+            self, 
+            x: torch.Tensor
+        ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         mu, logvar = self.encode(x)
         z = self.reparameterize(mu, logvar)
         x_recon = self.decode(z)
@@ -77,7 +90,7 @@ def get_vae_model(
         model_latent_dim: int, 
         image_size: int,
         device: str
-    ):
+    ) -> VAE:
     model = VAE(latent_dim=model_latent_dim, image_size=image_size)
     checkpoint = torch.load(model_path, map_location=device)
 

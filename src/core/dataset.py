@@ -1,52 +1,53 @@
 import os
 import pandas as pd
 from PIL import Image
+from enum import Enum
+from typing import Any, Callable, Optional
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 
 
-celebA_features = [
-        '5_o_Clock_Shadow',
-        'Arched_Eyebrows',
-        'Attractive',
-        'Bags_Under_Eyes',
-        'Bald',
-        'Bangs',
-        'Big_Lips',
-        'Big_Nose',
-        'Black_Hair',
-        'Blond_Hair',
-        'Blurry',
-        'Brown_Hair',
-        'Bushy_Eyebrows',
-        'Chubby',
-        'Double_Chin',
-        'Eyeglasses',
-        'Goatee',
-        'Gray_Hair',
-        'Heavy_Makeup',
-        'High_Cheekbones',
-        'Male',
-        'Mouth_Slightly_Open',
-        'Mustache',
-        'Narrow_Eyes',
-        'No_Beard',
-        'Oval_Face',
-        'Pale_Skin',
-        'Pointy_Nose',
-        'Receding_Hairline',
-        'Rosy_Cheeks',
-        'Sideburns',
-        'Smiling',
-        'Straight_Hair',
-        'Wavy_Hair',
-        'Wearing_Earrings',
-        'Wearing_Hat',
-        'Wearing_Lipstick',
-        'Wearing_Necklace',
-        'Wearing_Necktie',
-        'Young'
-]
+class CelebAFeature(Enum):
+    _5_o_Clock_Shadow = "5_o_Clock_Shadow"
+    Arched_Eyebrows = "Arched_Eyebrows"
+    Attractive = "Attractive"
+    Bags_Under_Eyes = "Bags_Under_Eyes"
+    Bald = "Bald"
+    Bangs = "Bangs"
+    Big_Lips = "Big_Lips"
+    Big_Nose = "Big_Nose"
+    Black_Hair = "Black_Hair"
+    Blond_Hair = "Blond_Hair"
+    Blurry = "Blurry"
+    Brown_Hair = "Brown_Hair"
+    Bushy_Eyebrows = "Bushy_Eyebrows"
+    Chubby = "Chubby"
+    Double_Chin = "Double_Chin"
+    Eyeglasses = "Eyeglasses"
+    Goatee = "Goatee"
+    Gray_Hair = "Gray_Hair"
+    Heavy_Makeup = "Heavy_Makeup"
+    High_Cheekbones = "High_Cheekbones"
+    Male = "Male"
+    Mouth_Slightly_Open = "Mouth_Slightly_Open"
+    Mustache = "Mustache"
+    Narrow_Eyes = "Narrow_Eyes"
+    No_Beard = "No_Beard"
+    Oval_Face = "Oval_Face"
+    Pale_Skin = "Pale_Skin"
+    Pointy_Nose = "Pointy_Nose"
+    Receding_Hairline = "Receding_Hairline"
+    Rosy_Cheeks = "Rosy_Cheeks"
+    Sideburns = "Sideburns"
+    Smiling = "Smiling"
+    Straight_Hair = "Straight_Hair"
+    Wavy_Hair = "Wavy_Hair"
+    Wearing_Earrings = "Wearing_Earrings"
+    Wearing_Hat = "Wearing_Hat"
+    Wearing_Lipstick = "Wearing_Lipstick"
+    Wearing_Necklace = "Wearing_Necklace"
+    Wearing_Necktie = "Wearing_Necktie"
+    Young = "Young"
 
 
 class CelebADataset(Dataset):
@@ -54,44 +55,47 @@ class CelebADataset(Dataset):
             self, 
             celebA_image_path: str, 
             celebA_attr_path: str, 
-            transform=None, 
-            filter_attr=None, 
-            filter_value=None, 
-            max_samples=None
+            transform: Optional[Callable] = None, 
+            filter_attr: Optional[CelebAFeature] = None, 
+            filter_value: Optional[bool] = None, 
+            num_calc_samples: Optional[int] = None
         ):
         self.celebA_image_path = celebA_image_path
         self.celebA_attr_path = celebA_attr_path
         self.transform = transform
         self.filter_attr = filter_attr
         self.filter_value = filter_value
-        self.max_samples = max_samples
+        self.num_calc_samples = num_calc_samples
         
         self.attr_df = None
         self.image_list = None
         
         self.attr_df = pd.read_csv(celebA_attr_path)
-        if 'image_id' not in self.attr_df.columns and len(self.attr_df.columns) > 0:
-            self.attr_df.columns = ['image_id'] + list(self.attr_df.columns[1:])
+        if "image_id" not in self.attr_df.columns and len(self.attr_df.columns) > 0:
+            self.attr_df.columns = ["image_id"] + list(self.attr_df.columns[1:])
         
-        if filter_attr and filter_attr in self.attr_df.columns:
-            filtered = self.attr_df[self.attr_df[filter_attr] == 1 if filter_value == 1 else -1]
-            self.image_list = filtered['image_id'].tolist()
+        if filter_attr is not None and filter_value is not None:
+            filtered = self.attr_df[self.attr_df[filter_attr.value] == (1 if filter_value else -1)]
+            self.image_list = filtered["image_id"].tolist()
         else:
-            self.image_list = self.attr_df['image_id'].tolist()
+            self.image_list = self.attr_df["image_id"].tolist()
 
-        if self.max_samples:
-            self.image_list = self.image_list[:self.max_samples]
+        if self.num_calc_samples:
+            self.image_list = self.image_list[:self.num_calc_samples]
         
         print(f"[Dataset] CelebADataset __init__ success ({len(self.image_list)})")
     
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.image_list)
     
-    def __getitem__(self, idx):
+    def __getitem__(
+            self, 
+            idx: int
+        ) -> tuple[Any, str]:
         img_name = self.image_list[idx]
         img_path = os.path.join(self.celebA_image_path, img_name)
         
-        image = Image.open(img_path).convert('RGB')
+        image = Image.open(img_path).convert("RGB")
         if self.transform:
             image = self.transform(image)
         return image, img_name
@@ -100,13 +104,13 @@ class CelebADataset(Dataset):
 def get_celeba_loader(
         celebA_image_path: str, 
         celebA_attr_path: str, 
-        batch_size=64, 
-        image_size=64,
-        filter_attr=None, 
-        filter_value=None,
-        shuffle=False,
-        max_samples=None
-    ):
+        batch_size: int = 64, 
+        image_size: int = 64,
+        filter_attr: Optional[CelebAFeature] = None, 
+        filter_value: Optional[bool] = None,
+        shuffle: bool = False,
+        num_calc_samples: Optional[int] = None
+    ) -> DataLoader:
     transform = transforms.Compose([
         transforms.Resize((image_size, image_size)),
         transforms.ToTensor(),
@@ -118,7 +122,7 @@ def get_celeba_loader(
         transform=transform,
         filter_attr=filter_attr,
         filter_value=filter_value,
-        max_samples=max_samples
+        num_calc_samples=num_calc_samples
     )
     
     dataloader = DataLoader(
@@ -129,6 +133,56 @@ def get_celeba_loader(
         pin_memory=True
     )
     
-    print(f"[Dataset] get_celeba_loader success ({celebA_image_path}, {celebA_attr_path})")
+    print(f"[Dataset] get_celeba_loader success {f"({filter_attr.value}={1 if filter_value else -1})" if filter_attr is not None and filter_value is not None else ""}")
     return dataloader
+
+
+def get_celeba_loader_set(
+        celebA_image_path: str, 
+        celebA_attr_path: str, 
+        batch_size: int = 64, 
+        image_size: int = 64,
+        filter_attr: CelebAFeature = CelebAFeature.Eyeglasses,
+        filter_value: bool = True,
+        shuffle: bool = False,
+        num_calc_samples: Optional[int] = None,
+        num_samples: int = 8
+    ) -> tuple[DataLoader, DataLoader, DataLoader]:
+    true_celebA_loader =  get_celeba_loader(
+        celebA_image_path = celebA_image_path,
+        celebA_attr_path = celebA_attr_path,
+        batch_size = batch_size,
+        image_size = image_size,
+        filter_attr = filter_attr,
+        filter_value = filter_value,
+        shuffle = shuffle,
+        num_calc_samples = num_calc_samples
+    )
+    print(f"[Dataset] true_celebA_loader loaded ({len(true_celebA_loader.dataset)})")
+
+    false_celebA_loader =  get_celeba_loader(
+        celebA_image_path = celebA_image_path,
+        celebA_attr_path = celebA_attr_path,
+        batch_size = batch_size,
+        image_size = image_size,
+        filter_attr = filter_attr,
+        filter_value = not filter_value,
+        shuffle = shuffle,
+        num_calc_samples = num_calc_samples
+    )
+    print(f"[Dataset] false_celebA_loader loaded ({len(false_celebA_loader.dataset)})")
+
+    test_celebA_loader =  get_celeba_loader(
+        celebA_image_path = celebA_image_path,
+        celebA_attr_path = celebA_attr_path,
+        batch_size = batch_size,
+        image_size = image_size,
+        filter_attr = filter_attr,
+        filter_value = not filter_value,
+        shuffle = shuffle,
+        num_calc_samples = num_samples
+    )
+    print(f"[Dataset] false_celebA_loader loaded ({len(false_celebA_loader.dataset)})")
+
+    return true_celebA_loader, false_celebA_loader, test_celebA_loader
 

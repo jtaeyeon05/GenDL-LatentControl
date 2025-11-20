@@ -5,7 +5,7 @@ import torch
 working_dir = os.getcwd()
 project_dir = working_dir[:-4] if working_dir.endswith("/src") else working_dir
 
-model_path = f"{project_dir}/model/vae_celeba_v2_64_learning_rate_0.0005_epoch_20_latent_dim_128.pth"
+model_path = f"{project_dir}/model/vae_celeba_v1_128_learning_rate_0.0005_epoch_50_latent_dim_128.pth"
 celebA_path = f"{project_dir}/dataset/celebA"
 celebA_image_path = f"{celebA_path}/img_align_celeba/img_align_celeba"
 celebA_attr_path = f"{celebA_path}/list_attr_celeba.csv"
@@ -15,8 +15,9 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 model_latent_dim = 128
 batch_size = 128
-image_size = 64
+image_size = 128
 
-scale = 3
-num_samples = 100
+num_calc_samples = 100
+num_samples = 8
 shuffle = True
+scale = 3
