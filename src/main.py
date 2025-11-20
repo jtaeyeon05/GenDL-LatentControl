@@ -5,7 +5,7 @@ from core.dataset import get_celeba_loader
 from core.model import get_vae_model
 
 
-def main():
+def main() -> None:
     if not os.path.exists(config.model_path):
         print("[Main] model_path does not exist")
         return

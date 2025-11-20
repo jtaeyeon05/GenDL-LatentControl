@@ -16,7 +16,7 @@ class VAE(nn.Module):
         
         self.dynamic_size = self.image_size
         for _ in range(4):
-            self.dynamic_size = math.floor((self.dynamic_size - 4 + 2 * 1) / 2) + 1
+            self.dynamic_size = math.floor((self.dynamic_size - 2) / 2) + 1
         self.flatten_size = 256 * self.dynamic_size * self.dynamic_size
         
         # Encoder
