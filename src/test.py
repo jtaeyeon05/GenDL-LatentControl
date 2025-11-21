@@ -57,12 +57,12 @@ def test() -> None:
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
     )
 
-    if not os.path.exists(config.celebA_image_path) or not os.path.exists(config.celebA_attr_path):
-        print("[Test] celebA_image_path or celebA_attr_path  does not exist")
+    if not os.path.exists(config.celeba_image_path) or not os.path.exists(config.celeba_attr_path):
+        print("[Test] celeba_image_path or celeba_attr_path  does not exist")
         return
     celeba_loader = get_celeba_loader(
-        celebA_image_path = config.celebA_image_path,
-        celebA_attr_path = config.celebA_attr_path,
+        celeba_image_path = config.celeba_image_path,
+        celeba_attr_path = config.celeba_attr_path,
         batch_size = config.batch_size,
         image_size = config.image_size,
         shuffle = config.shuffle

@@ -58,23 +58,26 @@ def run_vae_attribute_experiment(
     v_g = v_g.to(device)
     
     test_images = []
+    reconstructed_images = []
     transformed_images = []
 
     with torch.no_grad():
         for test_local_images, _ in tqdm(test_celeba_loader, desc="Transforming test images"):
             test_local_images = test_local_images.to(device)
-            transformed_local_images = model.encode(test_local_images)[0] + scale * v_g.unsqueeze(0)
-            transformed_local_images = model.decode(transformed_local_images).clamp(0.0, 1.0)
+            encoded_local_vectors = model.encode(test_local_images)[0]
+            transformed_local_vectors = encoded_local_vectors + scale * v_g.unsqueeze(0)
 
             test_images.append(test_local_images.cpu())
-            transformed_images.append(transformed_local_images.cpu())
+            reconstructed_images.append(model.decode(encoded_local_vectors).clamp(0.0, 1.0).cpu())
+            transformed_images.append(model.decode(transformed_local_vectors).clamp(0.0, 1.0).cpu())
 
     test_images = torch.cat(test_images, dim=0)
+    reconstructed_images = torch.cat(reconstructed_images, dim=0)
     transformed_images = torch.cat(transformed_images, dim=0)
     print()
     print(f"[Experiment] apply_attribute_vector success")
 
-    grid = make_grid(torch.cat([test_images, transformed_images]), nrow = len(test_celeba_loader.dataset))
+    grid = make_grid(torch.cat([test_images, reconstructed_images, transformed_images]), nrow = len(test_celeba_loader.dataset))
     save_image(grid, output_path)
     print(f"[Experiment] save_image success")
 

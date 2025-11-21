@@ -55,16 +55,16 @@ class CelebAFeature(Enum):
 class CelebADataset(Dataset):
     def __init__(
             self, 
-            celebA_image_path: str, 
-            celebA_attr_path: str, 
+            celeba_image_path: str,
+            celeba_attr_path: str,
             transform: Optional[Callable] = None, 
             filter_attr: Optional[CelebAFeature] = None, 
             filter_value: Optional[bool] = None, 
             num_calc_samples: Optional[int] = None,
             shuffle: bool = False
         ):
-        self.celebA_image_path = celebA_image_path
-        self.celebA_attr_path = celebA_attr_path
+        self.celeba_image_path = celeba_image_path
+        self.celeba_attr_path = celeba_attr_path
         self.transform = transform
         self.filter_attr = filter_attr
         self.filter_value = filter_value
@@ -73,7 +73,7 @@ class CelebADataset(Dataset):
         self.attr_df = None
         self.image_list = None
         
-        self.attr_df = pd.read_csv(celebA_attr_path)
+        self.attr_df = pd.read_csv(celeba_attr_path)
         if "image_id" not in self.attr_df.columns and len(self.attr_df.columns) > 0:
             self.attr_df.columns = ["image_id"] + list(self.attr_df.columns[1:])
         
@@ -99,7 +99,7 @@ class CelebADataset(Dataset):
             idx: int
         ) -> tuple[Any, str]:
         img_name = self.image_list[idx]
-        img_path = os.path.join(self.celebA_image_path, img_name)
+        img_path = os.path.join(self.celeba_image_path, img_name)
         
         image = Image.open(img_path).convert("RGB")
         if self.transform:
@@ -108,8 +108,8 @@ class CelebADataset(Dataset):
     
 
 def get_celeba_loader(
-        celebA_image_path: str, 
-        celebA_attr_path: str, 
+        celeba_image_path: str,
+        celeba_attr_path: str,
         batch_size: int = 64, 
         image_size: int = 64,
         filter_attr: Optional[CelebAFeature] = None, 
@@ -123,8 +123,8 @@ def get_celeba_loader(
     ])
     
     dataset = CelebADataset(
-        celebA_image_path = celebA_image_path,
-        celebA_attr_path = celebA_attr_path,
+        celeba_image_path = celeba_image_path,
+        celeba_attr_path = celeba_attr_path,
         transform = transform,
         filter_attr = filter_attr,
         filter_value = filter_value,
@@ -144,8 +144,8 @@ def get_celeba_loader(
 
 
 def get_celeba_loader_set(
-        celebA_image_path: str, 
-        celebA_attr_path: str, 
+        celeba_image_path: str,
+        celeba_attr_path: str,
         batch_size: int = 64, 
         image_size: int = 64,
         filter_attr: CelebAFeature = CelebAFeature.Eyeglasses,
@@ -154,9 +154,9 @@ def get_celeba_loader_set(
         num_calc_samples: Optional[int] = None,
         num_samples: int = 8
     ) -> tuple[DataLoader, DataLoader, DataLoader]:
-    true_celebA_loader = get_celeba_loader(
-        celebA_image_path = celebA_image_path,
-        celebA_attr_path = celebA_attr_path,
+    true_celeba_loader = get_celeba_loader(
+        celeba_image_path = celeba_image_path,
+        celeba_attr_path = celeba_attr_path,
         batch_size = batch_size,
         image_size = image_size,
         filter_attr = filter_attr,
@@ -164,11 +164,11 @@ def get_celeba_loader_set(
         shuffle = shuffle,
         num_calc_samples = num_calc_samples
     )
-    print(f"[Dataset] true_celebA_loader loaded ({len(true_celebA_loader.dataset)})")
+    print(f"[Dataset] true_celeba_loader loaded ({len(true_celeba_loader.dataset)})")
 
-    false_celebA_loader = get_celeba_loader(
-        celebA_image_path = celebA_image_path,
-        celebA_attr_path = celebA_attr_path,
+    false_celeba_loader = get_celeba_loader(
+        celeba_image_path = celeba_image_path,
+        celeba_attr_path = celeba_attr_path,
         batch_size = batch_size,
         image_size = image_size,
         filter_attr = filter_attr,
@@ -176,11 +176,11 @@ def get_celeba_loader_set(
         shuffle = shuffle,
         num_calc_samples = num_calc_samples
     )
-    print(f"[Dataset] false_celebA_loader loaded ({len(false_celebA_loader.dataset)})")
+    print(f"[Dataset] false_celeba_loader loaded ({len(false_celeba_loader.dataset)})")
 
-    test_celebA_loader = get_celeba_loader(
-        celebA_image_path = celebA_image_path,
-        celebA_attr_path = celebA_attr_path,
+    test_celeba_loader = get_celeba_loader(
+        celeba_image_path = celeba_image_path,
+        celeba_attr_path = celeba_attr_path,
         batch_size = batch_size,
         image_size = image_size,
         filter_attr = filter_attr,
@@ -188,7 +188,7 @@ def get_celeba_loader_set(
         shuffle = shuffle,
         num_calc_samples = num_samples
     )
-    print(f"[Dataset] test_celebA_loader loaded ({len(test_celebA_loader.dataset)})")
+    print(f"[Dataset] test_celeba_loader loaded ({len(test_celeba_loader.dataset)})")
 
-    return true_celebA_loader, false_celebA_loader, test_celebA_loader
+    return true_celeba_loader, false_celeba_loader, test_celeba_loader
 
