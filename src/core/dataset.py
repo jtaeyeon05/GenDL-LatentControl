@@ -1,11 +1,11 @@
 import os
 import numpy as np
+import torch
 import pandas as pd
 from PIL import Image
 from enum import Enum
 from typing import Any, Callable, Optional
 from torch.utils.data import Dataset, DataLoader
-from torch.utils.data.sampler import SubsetRandomSampler
 from torchvision import transforms
 
 
@@ -136,7 +136,7 @@ def get_celeba_loader(
         dataset,
         batch_size = batch_size,
         num_workers = 8,
-        pin_memory = True
+        pin_memory = not (torch.backends.mps.is_available() and torch.backends.mps.is_built())
     )
 
     print(f"[Dataset] get_celeba_loader success {f"({filter_attr.value}={1 if filter_value else -1})" if filter_attr is not None and filter_value is not None else ""}")

@@ -2,7 +2,6 @@ import torch
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 from torchvision.utils import make_grid, save_image
-from typing import Optional
 
 from core.model import VAE
 
@@ -46,12 +45,14 @@ def run_vae_attribute_experiment(
         dataloader = true_celeba_loader,
         device = device
     )
+    print()
     print(f"[Experiment] extract_average_latent(true_celeba_loader) success")
     z_2 = extract_average_latent(
         model = model,
         dataloader = false_celeba_loader,
         device = device
     )
+    print()
     print(f"[Experiment] extract_average_latent(false_celeba_loader) success")
     v_g = z_1 - z_2
     v_g = v_g.to(device)
@@ -70,6 +71,7 @@ def run_vae_attribute_experiment(
 
     test_images = torch.cat(test_images, dim=0)
     transformed_images = torch.cat(transformed_images, dim=0)
+    print()
     print(f"[Experiment] apply_attribute_vector success")
 
     grid = make_grid(torch.cat([test_images, transformed_images]), nrow = len(test_celeba_loader.dataset))
