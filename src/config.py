@@ -25,10 +25,10 @@ model_latent_dim = 128
 batch_size = 128
 image_size = 128
 
-filter_attr = CelebAFeature.Smiling
-filter_value = True
+filter_attr = [CelebAFeature.Smiling, CelebAFeature.Eyeglasses]
+filter_value = [True, True]
 shuffle = True
 num_calc_samples = 200
 num_samples = 8
-scale = 1
+scale = 2
 
