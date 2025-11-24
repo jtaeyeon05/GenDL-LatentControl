@@ -25,10 +25,10 @@ model_latent_dim = 128
 batch_size = 128
 image_size = 128
 
-filter_attr = [CelebAFeature.Eyeglasses, CelebAFeature.Smiling]
-filter_value = [True, True]
-scale = [2.0, 1.5]
+filter_attr = list(CelebAFeature)  # [CelebAFeature.Eyeglasses, CelebAFeature.Smiling]
+filter_value = [True for _ in range(len(CelebAFeature))]  # [True, True]
+scale = [1 for _ in range(len(CelebAFeature))]  # [2.0, 1.5]
 shuffle = True
-num_calc_samples = 200
+num_calc_samples = None  # 200
 num_samples = 8
 
