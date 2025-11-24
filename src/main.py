@@ -12,6 +12,8 @@ from core.model import get_vae_model
 
 
 def main() -> None:
+    print(f"[Main] device: {config.device}")
+
     if not os.path.exists(config.model_path):
         print("[Main] model_path does not exist")
         return
@@ -86,8 +88,8 @@ def main() -> None:
             output_path = os.path.join(config.output_path, "test_only.png"),
             device = config.device,
         ),
-        attr_output_path = os.path.join(config.output_path, "attr"),
-        attr_output_name = os.path.split(config.model_path)[1][:-4]
+        latent_vector_path = config.latent_vector_path,
+        latent_vector_name = config.latent_vector_name
     )
 
 

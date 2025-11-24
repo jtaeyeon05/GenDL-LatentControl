@@ -1,3 +1,4 @@
+import os
 import torch
 from tqdm import tqdm
 from core.custom_dataset import get_custom_dataset_loader
@@ -355,7 +356,7 @@ def run_vae_multi_attribute_experiment(
         labels.append(
             "Transformed\n" +
             f"{experiment_config.filter_attr[i].value}\n" +
-            f" ={experiment_config.filter_value[i]} (*{experiment_config.scale[i]})"
+            f" ={experiment_config.filter_value[i]} (*{experiment_config.scale[i]:.2f})"
         )
     if filter_length > 1:
         labels.append(
@@ -364,7 +365,7 @@ def run_vae_multi_attribute_experiment(
                 "\n".join(
                     [
                         f"{experiment_config.filter_attr[i].value}\n" +
-                        " ={experiment_config.filter_value[i]} (*{experiment_config.scale[i]})"
+                        f" ={experiment_config.filter_value[i]} (*{experiment_config.scale[i]:.2f})"
                         for i in range(filter_length)
                     ]
                 )
@@ -384,8 +385,8 @@ def run_vae_only_attribute_experiment(
         model: VAE,
         dataset_config: DatasetConfig,
         experiment_config: ExperimentConfig,
-        attr_output_path: Optional[str] = None,
-        attr_output_name: Optional[str] = None
+        latent_vector_path: Optional[str] = None,
+        latent_vector_name: Optional[str] = None
     ) -> None:
     print(f"[Experiment] {"=" * 60}")
     print(f"[Experiment] VAE Only Attribute Experiment")
@@ -457,6 +458,14 @@ def run_vae_only_attribute_experiment(
         latent_vector_list.append(latent_vector)
     print(f"\r[Experiment] Calculated latent_vector")
 
+    if latent_vector_path is not None and latent_vector_name is not None \
+            and os.path.exists(latent_vector_path):
+        for i in range(filter_length):
+            save_name = f"{experiment_config.filter_attr[i].value}_{experiment_config.filter_value[i]}"
+            save_path = os.path.join(latent_vector_path, f"{latent_vector_name}_{save_name}.pt")
+            torch.save(latent_vector_list[i].cpu(), save_path)
+            print(f"[Experiment] Saved latent vector ({save_name}, {save_path})")
+
     attr_images = []
     with torch.no_grad():
         for i in range(filter_length):
@@ -470,7 +479,7 @@ def run_vae_only_attribute_experiment(
         labels.append(
             "Attr\n" +
             f"{experiment_config.filter_attr[i].value}\n" +
-            f" ={experiment_config.filter_value[i]} (*{experiment_config.scale[i]})"
+            f" ={experiment_config.filter_value[i]} (*{experiment_config.scale[i]:.2f})"
         )
 
     save_result_image(

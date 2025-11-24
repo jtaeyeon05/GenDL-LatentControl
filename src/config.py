@@ -13,6 +13,8 @@ celeba_image_path = f"{celeba_path}/img_align_celeba/img_align_celeba"
 celeba_attr_path = f"{celeba_path}/list_attr_celeba.csv"
 custom_dataset_path = f"{project_dir}/dataset/custom"
 output_path = f"{project_dir}/output"
+latent_vector_path = os.path.join(output_path, "latent_vector")
+latent_vector_name = os.path.split(model_path)[1][:-4]
 
 if torch.cuda.is_available():
     device = "cuda"
