@@ -78,7 +78,7 @@ def save_result_image(
         draw.text((10, y_position + 10), label, fill=(0, 0, 0), font=font)
 
     result_image.save(output_path)
-    print(f"[Experiment] save_image success")
+    print(f"[Experiment] save_image succeed")
 
 
 def __not(
@@ -161,18 +161,18 @@ def run_vae_synthesized_attribute_experiment(
         dataloader = true_celeba_loader,
         device = experiment_config.device
     )
-    print(f"\r[Experiment] extract_average_latent(true_celeba_loader) success")
+    print(f"\r[Experiment] extract_average_latent(true_celeba_loader) succeed")
 
     false_vector = extract_average_latent(
         model = model,
         dataloader = false_celeba_loader,
         device = experiment_config.device
     )
-    print(f"\r[Experiment] extract_average_latent(false_celeba_loader) success")
+    print(f"\r[Experiment] extract_average_latent(false_celeba_loader) succeed")
 
     latent_vector = true_vector - false_vector
     latent_vector = latent_vector.to(experiment_config.device)
-    print(f"\r[Experiment] calculate latent_vector success")
+    print(f"\r[Experiment] Calculated latent_vector")
 
     test_images = []
     reconstructed_images = []
@@ -191,7 +191,7 @@ def run_vae_synthesized_attribute_experiment(
     test_images = torch.cat(test_images, dim=0)
     reconstructed_images = torch.cat(reconstructed_images, dim=0)
     transformed_images = torch.cat(transformed_images, dim=0)
-    print(f"\r[Experiment] apply attribute_vector success")
+    print(f"\r[Experiment] Applied attribute_vector")
 
     labels = [
         "Original",
@@ -294,7 +294,7 @@ def run_vae_multi_attribute_experiment(
             device = experiment_config.device
         )
         true_vector_list.append(true_vector)
-        print(f"\r[Experiment] extract_average_latent(true_celeba_loader_{i}) success")
+        print(f"\r[Experiment] extract_average_latent(true_celeba_loader_{i}) succeed")
 
     false_vector_list = []
     for i in range(filter_length):
@@ -304,14 +304,14 @@ def run_vae_multi_attribute_experiment(
             device = experiment_config.device
         )
         false_vector_list.append(false_vector)
-        print(f"\r[Experiment] extract_average_latent(false_celeba_loader_{i}) success")
+        print(f"\r[Experiment] extract_average_latent(false_celeba_loader_{i}) succeed")
 
     latent_vector_list = []
     for i in range(filter_length):
         latent_vector = true_vector_list[i] - false_vector_list[i]
         latent_vector = latent_vector.to(experiment_config.device)
         latent_vector_list.append(latent_vector)
-    print(f"\r[Experiment] calculate latent_vector success")
+    print(f"\r[Experiment] Calculated latent_vector")
 
     test_images = []
     reconstructed_images = []
@@ -348,7 +348,7 @@ def run_vae_multi_attribute_experiment(
         all_transformed_images = torch.cat(all_transformed_images, dim=0)
     else:
         all_transformed_images = torch.tensor([], device="cpu")
-    print(f"\r[Experiment] apply attribute_vector success")
+    print(f"\r[Experiment] Applied attribute_vector")
 
     labels = ["Original", "Reconstructed"]
     for i in range(filter_length):
@@ -383,7 +383,9 @@ def run_vae_multi_attribute_experiment(
 def run_vae_only_attribute_experiment(
         model: VAE,
         dataset_config: DatasetConfig,
-        experiment_config: ExperimentConfig
+        experiment_config: ExperimentConfig,
+        attr_output_path: Optional[str] = None,
+        attr_output_name: Optional[str] = None
     ) -> None:
     print(f"[Experiment] {"=" * 60}")
     print(f"[Experiment] VAE Only Attribute Experiment")
@@ -436,7 +438,7 @@ def run_vae_only_attribute_experiment(
             device = experiment_config.device
         )
         true_vector_list.append(true_vector)
-        print(f"\r[Experiment] extract_average_latent(true_celeba_loader_{i}) success")
+        print(f"\r[Experiment] extract_average_latent(true_celeba_loader_{i}) succeed")
 
     false_vector_list = []
     for i in range(filter_length):
@@ -446,14 +448,14 @@ def run_vae_only_attribute_experiment(
             device = experiment_config.device
         )
         false_vector_list.append(false_vector)
-        print(f"\r[Experiment] extract_average_latent(false_celeba_loader_{i}) success")
+        print(f"\r[Experiment] extract_average_latent(false_celeba_loader_{i}) succeed")
 
     latent_vector_list = []
     for i in range(filter_length):
         latent_vector = true_vector_list[i] - false_vector_list[i]
         latent_vector = latent_vector.to(experiment_config.device)
         latent_vector_list.append(latent_vector)
-    print(f"\r[Experiment] calculate latent_vector success")
+    print(f"\r[Experiment] Calculated latent_vector")
 
     attr_images = []
     with torch.no_grad():
@@ -461,7 +463,7 @@ def run_vae_only_attribute_experiment(
             latent_vector = experiment_config.scale[i] * latent_vector_list[i].unsqueeze(0)
             attr_images.append(model.decode(latent_vector).clamp(0.0, 1.0).cpu())
     attr_images = torch.cat(attr_images, dim=0)
-    print(f"\r[Experiment] calculate attr_images success")
+    print(f"\r[Experiment] Calculated attr_images")
 
     labels = []
     for i in range(filter_length):

@@ -83,9 +83,11 @@ def main() -> None:
             filter_attr = config.filter_attr,
             filter_value = config.filter_value,
             scale = config.scale,
-            output_path = os.path.join(config.output_path, 'test_only.png'),
+            output_path = os.path.join(config.output_path, "test_only.png"),
             device = config.device,
-        )
+        ),
+        attr_output_path = os.path.join(config.output_path, "attr"),
+        attr_output_name = os.path.split(config.model_path)[1][:-4]
     )
 
 

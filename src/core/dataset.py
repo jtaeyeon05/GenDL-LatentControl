@@ -95,7 +95,7 @@ class CelebADataset(Dataset):
         if self.num_calc_samples:
             self.image_list = self.image_list[:self.num_calc_samples]
 
-        print(f"[Dataset] CelebADataset __init__ success ({len(self.image_list)})")
+        print(f"[Dataset] CelebADataset __init__ succeed ({len(self.image_list)})")
 
     def __len__(self) -> int:
         return len(self.image_list)
@@ -145,6 +145,6 @@ def get_celeba_loader(
         pin_memory = not (torch.backends.mps.is_available() and torch.backends.mps.is_built())
     )
 
-    print(f"[Dataset] get_celeba_loader success {f"({list(map(lambda x: x.value, filter_attr))}={filter_value})" if isinstance(filter_attr, list) and isinstance(filter_value, list) else (f"({filter_attr.value}={filter_value})" if isinstance(filter_attr, CelebAFeature) and isinstance(filter_value, bool) else "")}")
+    print(f"[Dataset] get_celeba_loader succeed {f"({list(map(lambda x: x.value, filter_attr))}={filter_value})" if isinstance(filter_attr, list) and isinstance(filter_value, list) else (f"({filter_attr.value}={filter_value})" if isinstance(filter_attr, CelebAFeature) and isinstance(filter_value, bool) else "")}")
     return dataloader
 
