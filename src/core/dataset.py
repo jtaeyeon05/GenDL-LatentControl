@@ -54,30 +54,36 @@ class CelebAFeature(Enum):
 
 class CelebADataset(Dataset):
     def __init__(
-            self, 
+            self,
             celeba_image_path: str,
             celeba_attr_path: str,
-            transform: Optional[Callable] = None, 
-            filter_attr: Optional[CelebAFeature] = None, 
-            filter_value: Optional[bool] = None, 
+            transform: Optional[Callable] = None,
+            filter_attr: None | CelebAFeature | list[CelebAFeature] = None,
+            filter_value: None | bool | list[bool] = None,
             num_calc_samples: Optional[int] = None,
             shuffle: bool = False
-        ):
+    ):
         self.celeba_image_path = celeba_image_path
         self.celeba_attr_path = celeba_attr_path
         self.transform = transform
         self.filter_attr = filter_attr
         self.filter_value = filter_value
         self.num_calc_samples = num_calc_samples
-        
-        self.attr_df = None
-        self.image_list = None
-        
+
+        self.attr_df: Optional[pd.DataFrame] = None
+        self.image_list: Optional[list] = None
+
         self.attr_df = pd.read_csv(celeba_attr_path)
         if "image_id" not in self.attr_df.columns and len(self.attr_df.columns) > 0:
             self.attr_df.columns = ["image_id"] + list(self.attr_df.columns[1:])
-        
-        if filter_attr is not None and filter_value is not None:
+
+        if isinstance(filter_attr, list) and isinstance(filter_value, list):
+            mask = pd.Series([True] * len(self.attr_df), index = self.attr_df.index)
+            for attr, value in zip(filter_attr, filter_value):
+                mask = mask & (self.attr_df[attr.value] == (1 if value else -1))
+            filtered = self.attr_df[mask]
+            self.image_list = filtered["image_id"].tolist()
+        elif isinstance(filter_attr, CelebAFeature) and isinstance(filter_value, bool):
             filtered = self.attr_df[self.attr_df[filter_attr.value] == (1 if filter_value else -1)]
             self.image_list = filtered["image_id"].tolist()
         else:
@@ -85,43 +91,43 @@ class CelebADataset(Dataset):
 
         if shuffle:
             np.random.shuffle(self.image_list)
-        
+
         if self.num_calc_samples:
             self.image_list = self.image_list[:self.num_calc_samples]
-        
+
         print(f"[Dataset] CelebADataset __init__ success ({len(self.image_list)})")
-    
+
     def __len__(self) -> int:
         return len(self.image_list)
-    
+
     def __getitem__(
-            self, 
+            self,
             idx: int
-        ) -> tuple[Any, str]:
+    ) -> tuple[Any, str]:
         img_name = self.image_list[idx]
         img_path = os.path.join(self.celeba_image_path, img_name)
-        
+
         image = Image.open(img_path).convert("RGB")
         if self.transform:
             image = self.transform(image)
         return image, img_name
-    
+
 
 def get_celeba_loader(
         celeba_image_path: str,
         celeba_attr_path: str,
-        batch_size: int = 64, 
+        batch_size: int = 64,
         image_size: int = 64,
-        filter_attr: Optional[CelebAFeature] = None, 
-        filter_value: Optional[bool] = None,
+        filter_attr: None | CelebAFeature | list[CelebAFeature] = None,
+        filter_value: None | bool | list[bool] = None,
         shuffle: bool = True,
         num_calc_samples: Optional[int] = None
-    ) -> DataLoader:
+) -> DataLoader:
     transform = transforms.Compose([
         transforms.Resize((image_size, image_size)),
         transforms.ToTensor(),
     ])
-    
+
     dataset = CelebADataset(
         celeba_image_path = celeba_image_path,
         celeba_attr_path = celeba_attr_path,
@@ -131,7 +137,7 @@ def get_celeba_loader(
         num_calc_samples = num_calc_samples,
         shuffle = shuffle
     )
-    
+
     dataloader = DataLoader(
         dataset,
         batch_size = batch_size,
@@ -139,56 +145,6 @@ def get_celeba_loader(
         pin_memory = not (torch.backends.mps.is_available() and torch.backends.mps.is_built())
     )
 
-    print(f"[Dataset] get_celeba_loader success {f"({filter_attr.value}={1 if filter_value else -1})" if filter_attr is not None and filter_value is not None else ""}")
+    print(f"[Dataset] get_celeba_loader success {f"({list(map(lambda x: x.value, filter_attr))}={filter_value})" if isinstance(filter_attr, list) and isinstance(filter_value, list) else (f"({filter_attr.value}={filter_value})" if isinstance(filter_attr, CelebAFeature) and isinstance(filter_value, bool) else "")}")
     return dataloader
-
-
-def get_celeba_loader_set(
-        celeba_image_path: str,
-        celeba_attr_path: str,
-        batch_size: int = 64, 
-        image_size: int = 64,
-        filter_attr: CelebAFeature = CelebAFeature.Eyeglasses,
-        filter_value: bool = True,
-        shuffle: bool = False,
-        num_calc_samples: Optional[int] = None,
-        num_samples: int = 8
-    ) -> tuple[DataLoader, DataLoader, DataLoader]:
-    true_celeba_loader = get_celeba_loader(
-        celeba_image_path = celeba_image_path,
-        celeba_attr_path = celeba_attr_path,
-        batch_size = batch_size,
-        image_size = image_size,
-        filter_attr = filter_attr,
-        filter_value = filter_value,
-        shuffle = shuffle,
-        num_calc_samples = num_calc_samples
-    )
-    print(f"[Dataset] true_celeba_loader loaded ({len(true_celeba_loader.dataset)})")
-
-    false_celeba_loader = get_celeba_loader(
-        celeba_image_path = celeba_image_path,
-        celeba_attr_path = celeba_attr_path,
-        batch_size = batch_size,
-        image_size = image_size,
-        filter_attr = filter_attr,
-        filter_value = not filter_value,
-        shuffle = shuffle,
-        num_calc_samples = num_calc_samples
-    )
-    print(f"[Dataset] false_celeba_loader loaded ({len(false_celeba_loader.dataset)})")
-
-    test_celeba_loader = get_celeba_loader(
-        celeba_image_path = celeba_image_path,
-        celeba_attr_path = celeba_attr_path,
-        batch_size = batch_size,
-        image_size = image_size,
-        filter_attr = filter_attr,
-        filter_value = not filter_value,
-        shuffle = shuffle,
-        num_calc_samples = num_samples
-    )
-    print(f"[Dataset] test_celeba_loader loaded ({len(test_celeba_loader.dataset)})")
-
-    return true_celeba_loader, false_celeba_loader, test_celeba_loader
 
