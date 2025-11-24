@@ -5,7 +5,11 @@ from core.dataset import CelebAFeature
 
 
 working_dir = os.getcwd()
-project_dir = working_dir[:-4] if working_dir.replace("\\", "/").endswith("/src") else working_dir
+project_dir = working_dir
+if working_dir.replace("\\", "/").endswith("/src"):
+    project_dir = working_dir[:-4]
+if working_dir.replace("\\", "/").endswith("/src/core"):
+    project_dir = working_dir[:-9]
 
 model_path = f"{project_dir}/model/vae_celeba_v1.2_128_learning_rate_0.0005_epoch_50_latent_dim_128.pth"
 celeba_path = f"{project_dir}/dataset/celebA"
@@ -27,10 +31,10 @@ model_latent_dim = 128
 batch_size = 128
 image_size = 128
 
-filter_attr = list(CelebAFeature)  # [CelebAFeature.Eyeglasses, CelebAFeature.Smiling]
-filter_value = [True for _ in range(len(CelebAFeature))]  # [True, True]
-scale = [1 for _ in range(len(CelebAFeature))]  # [2.0, 1.5]
+filter_attr = [CelebAFeature.Eyeglasses, CelebAFeature.Smiling]
+filter_value = [True, True]
+scale = [1.5, 1.0]
 shuffle = True
-num_calc_samples = None  # 200
+num_calc_samples = 200
 num_samples = 8
 

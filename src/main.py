@@ -48,12 +48,13 @@ def main() -> None:
             device = config.device,
         )
     )
+    """
     run_vae_multi_attribute_experiment(
         model = model,
         dataset_config = DatasetConfig(
             celeba_image_path = config.celeba_image_path,
             celeba_attr_path = config.celeba_attr_path,
-            # custom_dataset_path = config.custom_dataset_path,
+            custom_dataset_path = config.custom_dataset_path,
             batch_size = config.batch_size,
             image_size = config.image_size,
             shuffle = config.shuffle,
@@ -91,6 +92,7 @@ def main() -> None:
         latent_vector_path = config.latent_vector_path,
         latent_vector_name = config.latent_vector_name
     )
+    """
 
 
 if __name__ == '__main__':
