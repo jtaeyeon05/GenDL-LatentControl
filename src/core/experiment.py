@@ -151,7 +151,7 @@ def run_vae_synthesized_attribute_experiment(
             batch_size = dataset_config.batch_size,
             image_size = dataset_config.image_size,
             shuffle = dataset_config.shuffle,
-            num_calc_samples = dataset_config.num_calc_samples,
+            num_calc_samples = dataset_config.num_samples,
         )
         print(f"[Experiment] test_dataset_loader loaded ({len(test_dataset_loader.dataset)})")
 
@@ -258,7 +258,7 @@ def run_vae_multi_attribute_experiment(
             filter_attr = experiment_config.filter_attr[i],
             filter_value = not experiment_config.filter_value[i],
             shuffle = dataset_config.shuffle,
-            num_calc_samples = dataset_config.num_calc_samples
+            num_calc_samples = dataset_config.num_samples
         )
         false_celeba_loader_list.append(false_celeba_loader)
         print(f"[Experiment] false_celeba_loader_{i} loaded ({len(false_celeba_loader.dataset)})")
