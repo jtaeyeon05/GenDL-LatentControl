@@ -1,9 +1,28 @@
 import torch
 from tqdm import tqdm
+from core.dataset import CelebAFeature
+from dataclasses import dataclass, field
 from torch.utils.data import DataLoader
-from torchvision.utils import make_grid, save_image
+from PIL import Image, ImageDraw, ImageFont
+from torchvision.transforms.functional import to_pil_image
+from torchvision.utils import make_grid
+from typing import Optional
 
 from core.model import VAE
+
+
+@dataclass
+class DatasetConfig:
+    celeba_image_path: str
+    celeba_attr_path: str
+    custom_dataset_path: Optional[str] = None
+    batch_size: int = 64
+    image_size: int = 64
+    filter_attr: list[CelebAFeature] = field(default_factory = lambda: [CelebAFeature.Eyeglasses])
+    filter_value: list[bool] = field(default_factory = lambda: [True])
+    shuffle: bool = False
+    num_calc_samples: Optional[int] = None
+    num_samples: int = 8
 
 
 def extract_average_latent(
@@ -77,7 +96,22 @@ def run_vae_attribute_experiment(
     print()
     print(f"[Experiment] apply_attribute_vector success")
 
+    labels = ["Original", "Reconstructed", "Transformed"]
     grid = make_grid(torch.cat([test_images, reconstructed_images, transformed_images]), nrow = len(test_celeba_loader.dataset))
-    save_image(grid, output_path)
+    grid_pil = to_pil_image(grid)
+
+    margin_left = 128
+    width, height = grid_pil.size
+
+    result_image = Image.new("RGB", (width + margin_left, height), (255, 255, 255))
+    result_image.paste(grid_pil, (margin_left, 0))
+
+    draw = ImageDraw.Draw(result_image)
+    font = ImageFont.load_default()
+    row_height = height // len(labels)
+    for i, label in enumerate(labels):
+        y_position = (i * row_height) + (row_height // 2) - 10
+        draw.text((10, y_position), label, fill=(0, 0, 0), font=font)
+    result_image.save(output_path)
     print(f"[Experiment] save_image success")
 
