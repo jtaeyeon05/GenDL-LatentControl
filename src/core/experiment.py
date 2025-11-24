@@ -92,13 +92,136 @@ def __not(
         return list(map(lambda x: not x, value))
 
 
+def run_vae_synthesized_attribute_experiment(
+        model: VAE,
+        dataset_config: DatasetConfig,
+        experiment_config: ExperimentConfig
+) -> None:
+    print(f"[Experiment] {"=" * 60}")
+    print(f"[Experiment] VAE Synthesized Attribute Experiment")
+    print(f"[Experiment] {"=" * 60}")
+
+    filter_length = len(experiment_config.filter_attr)
+    if len(experiment_config.filter_attr) != len(experiment_config.filter_value) \
+            or len(experiment_config.filter_attr) != len(experiment_config.scale) \
+            or len(experiment_config.filter_attr) < 1:
+        print(f"[Experiment] filter_attr length is wrong")
+        return
+
+    true_celeba_loader = get_celeba_loader(
+        celeba_image_path = dataset_config.celeba_image_path,
+        celeba_attr_path = dataset_config.celeba_attr_path,
+        batch_size = dataset_config.batch_size,
+        image_size = dataset_config.image_size,
+        filter_attr = experiment_config.filter_attr,
+        filter_value = experiment_config.filter_value,
+        shuffle = dataset_config.shuffle,
+        num_calc_samples = dataset_config.num_calc_samples
+    )
+    print(f"[Experiment] true_celeba_loader loaded ({len(true_celeba_loader.dataset)})")
+
+    false_celeba_loader = get_celeba_loader(
+        celeba_image_path = dataset_config.celeba_image_path,
+        celeba_attr_path = dataset_config.celeba_attr_path,
+        batch_size = dataset_config.batch_size,
+        image_size = dataset_config.image_size,
+        filter_attr = experiment_config.filter_attr,
+        filter_value = __not(experiment_config.filter_value),
+        shuffle = dataset_config.shuffle,
+        num_calc_samples = dataset_config.num_calc_samples
+    )
+    print(f"[Experiment] false_celeba_loader loaded ({len(false_celeba_loader.dataset)})")
+
+    if dataset_config.custom_dataset_path is None:
+        test_dataset_loader = get_celeba_loader(
+            celeba_image_path = dataset_config.celeba_image_path,
+            celeba_attr_path = dataset_config.celeba_attr_path,
+            batch_size = dataset_config.batch_size,
+            image_size = dataset_config.image_size,
+            filter_attr = experiment_config.filter_attr,
+            filter_value = __not(experiment_config.filter_value),
+            shuffle = dataset_config.shuffle,
+            num_calc_samples = dataset_config.num_samples
+        )
+        print(f"[Experiment] test_dataset_loader loaded ({len(test_dataset_loader.dataset)})")
+    else:
+        test_dataset_loader = get_custom_dataset_loader(
+            custom_dataset_path = dataset_config.custom_dataset_path,
+            batch_size = dataset_config.batch_size,
+            image_size = dataset_config.image_size,
+            shuffle = dataset_config.shuffle,
+            num_calc_samples = dataset_config.num_calc_samples,
+        )
+        print(f"[Experiment] test_dataset_loader loaded ({len(test_dataset_loader.dataset)})")
+
+    model.eval()
+
+    true_vector = extract_average_latent(
+        model = model,
+        dataloader = true_celeba_loader,
+        device = experiment_config.device
+    )
+    print(f"\r[Experiment] extract_average_latent(true_celeba_loader) success")
+    false_vector = extract_average_latent(
+        model = model,
+        dataloader = false_celeba_loader,
+        device = experiment_config.device
+    )
+    print(f"\r[Experiment] extract_average_latent(false_celeba_loader) success")
+
+    latent_vector = true_vector - false_vector
+    latent_vector = latent_vector.to(experiment_config.device)
+    print(f"\r[Experiment] calculate latent_vector success")
+
+    test_images = []
+    reconstructed_images = []
+    transformed_images = []
+
+    with torch.no_grad():
+        for test_local_images, _ in tqdm(test_dataset_loader, desc="Transforming test images"):
+            test_local_images = test_local_images.to(experiment_config.device)
+            encoded_local_vectors = model.encode(test_local_images)[0]
+            transformed_local_vectors = encoded_local_vectors + sum(experiment_config.scale) / filter_length * latent_vector.unsqueeze(0)
+
+            test_images.append(test_local_images.cpu())
+            reconstructed_images.append(model.decode(encoded_local_vectors).clamp(0.0, 1.0).cpu())
+            transformed_images.append(model.decode(transformed_local_vectors).clamp(0.0, 1.0).cpu())
+
+    test_images = torch.cat(test_images, dim=0)
+    reconstructed_images = torch.cat(reconstructed_images, dim=0)
+    transformed_images = torch.cat(transformed_images, dim=0)
+    print(f"\r[Experiment] apply_attribute_vector success")
+
+    labels = [
+        "Original",
+        "Reconstructed",
+        f"Transformed (*{sum(experiment_config.scale) / filter_length})\n" +
+        f"{
+            "\n".join(
+                [
+                    f"{experiment_config.filter_attr[i].value}={experiment_config.filter_value[i]}"
+                    for i in range(filter_length)
+                ]
+            )
+        }"
+    ]
+
+    save_result_image(
+        images = torch.cat([test_images, reconstructed_images, transformed_images]),
+        labels = labels,
+        image_size = dataset_config.image_size,
+        nrow = len(test_dataset_loader.dataset),
+        output_path = experiment_config.output_path
+    )
+
+
 def run_vae_multi_attribute_experiment(
         model: VAE,
         dataset_config: DatasetConfig,
         experiment_config: ExperimentConfig
 ) -> None:
     print(f"[Experiment] {"=" * 60}")
-    print(f"[Experiment] VAE Attribute Experiment")
+    print(f"[Experiment] VAE Multi Attribute Experiment")
     print(f"[Experiment] {"=" * 60}")
 
     filter_length = len(experiment_config.filter_attr)
@@ -146,7 +269,7 @@ def run_vae_multi_attribute_experiment(
             shuffle = dataset_config.shuffle,
             num_calc_samples = dataset_config.num_samples
         )
-        print(f"[Experiment] test_celeba_loader loaded ({len(test_dataset_loader.dataset)})")
+        print(f"[Experiment] test_dataset_loader loaded ({len(test_dataset_loader.dataset)})")
     else:
         test_dataset_loader = get_custom_dataset_loader(
             custom_dataset_path = dataset_config.custom_dataset_path,
@@ -155,7 +278,7 @@ def run_vae_multi_attribute_experiment(
             shuffle = dataset_config.shuffle,
             num_calc_samples = dataset_config.num_calc_samples,
         )
-        print(f"[Experiment] test_celeba_loader loaded ({len(test_dataset_loader.dataset)})")
+        print(f"[Experiment] test_dataset_loader loaded ({len(test_dataset_loader.dataset)})")
 
     model.eval()
 
@@ -180,6 +303,7 @@ def run_vae_multi_attribute_experiment(
         latent_vector = true_vector_list[i] - false_vector
         latent_vector = latent_vector.to(experiment_config.device)
         latent_vector_list.append(latent_vector)
+    print(f"\r[Experiment] calculate latent_vector success")
 
     test_images = []
     reconstructed_images = []
