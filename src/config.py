@@ -5,7 +5,7 @@ from core.dataset import CelebAFeature
 
 
 working_dir = os.getcwd()
-project_dir = working_dir[:-4] if working_dir.endswith("/src") else working_dir
+project_dir = working_dir[:-4] if working_dir.replace("\\", "/").endswith("/src") else working_dir
 
 model_path = f"{project_dir}/model/vae_celeba_v1.2_128_learning_rate_0.0005_epoch_50_latent_dim_128.pth"
 celeba_path = f"{project_dir}/dataset/celebA"
