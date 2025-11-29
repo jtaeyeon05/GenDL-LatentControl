@@ -59,6 +59,34 @@ class CustomDataset(Dataset):
         return image, img_name
 
 
+class CustomSingleDataset(Dataset):
+    def __init__(
+            self,
+            image_path: str,
+            transform: Optional[Callable] = None,
+        ):
+        self.image_path = image_path
+        self.transform = transform
+
+        self.valid_extensions = ('.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.webp')
+        if not os.path.exists(image_path) \
+                or not image_path.lower().endswith(self.valid_extensions):
+            raise ValueError(f"[CustomSingleDataset] CustomSingleDataset __init__ fail")
+        print(f"[CustomSingleDataset] CustomSingleDataset __init__ success")
+
+    def __len__(self) -> int:
+        return 1
+
+    def __getitem__(
+            self,
+            idx: int
+    ) -> tuple[Any, str]:
+        image = Image.open(self.image_path).convert("RGB")
+        if self.transform:
+            image = self.transform(image)
+        return image, os.path.basename(self.image_path)
+
+
 def get_custom_dataset_loader(
         custom_dataset_path: str,
         batch_size: int = 64,
@@ -68,7 +96,7 @@ def get_custom_dataset_loader(
 ) -> DataLoader:
     transform = transforms.Compose([
         transforms.Resize((image_size, image_size)),
-        transforms.ToTensor(),
+        transforms.ToTensor()
     ])
 
     dataset = CustomDataset(
@@ -86,6 +114,31 @@ def get_custom_dataset_loader(
     )
 
     print(f"[CustomDataset] get_custom_dataset_loader success")
+    return dataloader
+
+
+def get_custom_single_dataset_loader(
+        image_path: str,
+        image_size: int = 64,
+) -> DataLoader:
+    transform = transforms.Compose([
+        transforms.Resize((image_size, image_size)),
+        transforms.ToTensor()
+    ])
+
+    dataset = CustomSingleDataset(
+        image_path = image_path,
+        transform = transform
+    )
+
+    dataloader = DataLoader(
+        dataset,
+        batch_size = 1,
+        num_workers = 8,
+        pin_memory = not (torch.backends.mps.is_available() and torch.backends.mps.is_built())
+    )
+
+    print(f"[CustomSingleDataset] get_custom_single_dataset_loader success")
     return dataloader
 
 

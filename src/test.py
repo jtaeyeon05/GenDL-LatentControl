@@ -134,7 +134,7 @@ def test() -> None:
     )
 
     if not os.path.exists(config.celeba_image_path) or not os.path.exists(config.celeba_attr_path):
-        print("[Test] celeba_image_path or celeba_attr_path  does not exist")
+        print("[Test] celeba_image_path or celeba_attr_path does not exist")
         return
     celeba_loader = get_celeba_loader(
         celeba_image_path = config.celeba_image_path,
