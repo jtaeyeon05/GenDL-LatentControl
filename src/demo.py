@@ -69,7 +69,7 @@ class DemoApp:
     def _init_ui(self):
         self.top_frame = tkinter.Frame(
             self.window,
-            width = 900 * 0.85,
+            width = 900 * 0.80,
             height = 600 * 0.75
         )
         self.top_frame.place(relx = 0.0, rely = 0.0)
@@ -80,7 +80,7 @@ class DemoApp:
         )
         self.original_image_label.place(
             anchor = "w",
-            relx = 0.05,
+            relx = 0.15,
             rely = 0.50,
             width = 256,
             height = 256
@@ -93,7 +93,7 @@ class DemoApp:
         )
         self.transformed_image_label.place(
             anchor = "e",
-            relx = 0.95,
+            relx = 0.85,
             rely = 0.50,
             width = 256,
             height = 256
@@ -107,7 +107,7 @@ class DemoApp:
         self.desc_label.place(
             anchor = "center",
             relx = 0.50,
-            rely = 0.50
+            rely = 0.90
         )
 
         self.listbox = tkinter.Listbox(
@@ -118,7 +118,7 @@ class DemoApp:
             anchor = "ne",
             relx = 1.00,
             rely = 0.00,
-            relwidth = 0.15,
+            relwidth = 0.20,
             relheight = 0.75
         )
         for i, feature in enumerate(CelebAFeature):
