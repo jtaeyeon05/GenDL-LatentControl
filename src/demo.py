@@ -28,40 +28,34 @@ def _set_image(
 
 
 class DemoApp:
+    _MIN_VALUE = 0.0
+    _MAX_VALUE = 5.0
+
     def __init__(
             self,
             model: VAE,
             custom_single_dataset_loader: DataLoader,
             latent_vector_path: str,
             latent_vector_name: str,
-            filter_attr: CelebAFeature,
-            filter_value: bool,
             device: str
         ):
         self.model = model
         self.custom_single_dataset_loader = custom_single_dataset_loader
         self.latent_vector_path = latent_vector_path
         self.latent_vector_name = latent_vector_name
-        self.filter_attr = filter_attr
-        self.filter_value = filter_value
+        self.filter_attr = CelebAFeature.Smiling
+        self.filter_value = True
         self.filter_scale = 1.0
         self.device = device
 
         with torch.no_grad():
-            self.image, self.image_name = next(iter(custom_single_dataset_loader))
-            self.image = self.image.to(device)
+            self.image = next(iter(custom_single_dataset_loader))[0].to(device)
             self.image_encoded = model.encode(self.image)[0]
             print(f"\r[Demo] loaded image")
 
         if not os.path.exists(config.latent_vector_path):
             raise ValueError("[Demo] latent_vector_path does not exist")
-        self.attr = load_latent_vector(
-            latent_vector_path = latent_vector_path,
-            latent_vector_name = latent_vector_name,
-            filter_attr = filter_attr,
-            filter_value = filter_value
-        ).to(device)
-        print(f"\r[Demo] loaded attr")
+        self._load_attr()
 
         self.window = tkinter.Tk()
         self._init_window()
@@ -75,21 +69,10 @@ class DemoApp:
     def _init_ui(self):
         self.top_frame = tkinter.Frame(
             self.window,
-            width = 900,
-            height = 600 * 0.75,
-            padx = 25,
-            pady = 25
+            width = 900 * 0.85,
+            height = 600 * 0.75
         )
         self.top_frame.place(relx = 0.0, rely = 0.0)
-
-        self.bottom_frame = tkinter.Frame(
-            self.window,
-            width = 900,
-            height = 600 * 0.25,
-            padx = 25,
-            pady = 25
-        )
-        self.bottom_frame.place(relx = 0.0, rely = 0.75)
 
         self.original_image_label = tkinter.Label(
             self.top_frame,
@@ -97,7 +80,7 @@ class DemoApp:
         )
         self.original_image_label.place(
             anchor = "w",
-            relx = 0.1,
+            relx = 0.05,
             rely = 0.50,
             width = 256,
             height = 256
@@ -110,7 +93,7 @@ class DemoApp:
         )
         self.transformed_image_label.place(
             anchor = "e",
-            relx = 0.9,
+            relx = 0.95,
             rely = 0.50,
             width = 256,
             height = 256
@@ -127,9 +110,32 @@ class DemoApp:
             rely = 0.50
         )
 
+        self.listbox = tkinter.Listbox(
+            self.window,
+            justify = "right"
+        )
+        self.listbox.place(
+            anchor = "ne",
+            relx = 1.00,
+            rely = 0.00,
+            relwidth = 0.15,
+            relheight = 0.75
+        )
+        for i, feature in enumerate(CelebAFeature):
+            self.listbox.insert(i, feature.value)
+        self.listbox.selection_set(list(CelebAFeature).index(self.filter_attr))
+        self.listbox.bind('<<ListboxSelect>>', lambda event: self._on_listbox_clicked(event))
+
+        self.bottom_frame = tkinter.Frame(
+            self.window,
+            width = 900,
+            height = 600 * 0.25
+        )
+        self.bottom_frame.place(relx = 0.0, rely = 0.75)
+
         self.min_label = tkinter.Label(
             self.bottom_frame,
-            text = "0.0"
+            text = f"{self._MIN_VALUE}"
         )
         self.min_label.place(
             anchor = "w",
@@ -139,7 +145,7 @@ class DemoApp:
 
         self.max_label = tkinter.Label(
             self.bottom_frame,
-            text = "5.0"
+            text = f"{self._MAX_VALUE}"
         )
         self.max_label.place(
             anchor = "e",
@@ -149,8 +155,8 @@ class DemoApp:
 
         self.scale = tkinter.Scale(
             self.bottom_frame,
-            from_ = 0.0,
-            to = 5.0,
+            from_ = self._MIN_VALUE,
+            to = self._MAX_VALUE,
             resolution = 0.01,
             tickinterval = 0,
             showvalue = False,
@@ -165,16 +171,41 @@ class DemoApp:
             relwidth = 0.75
         )
 
+    def _load_attr(self):
+        self.attr = load_latent_vector(
+            latent_vector_path = self.latent_vector_path,
+            latent_vector_name = self.latent_vector_name,
+            filter_attr = self.filter_attr,
+            filter_value = self.filter_value
+        ).to(self.device)
+        print(f"\r[Demo] loaded attr")
+
     def _transformed_image(self) -> torch.Tensor:
         with torch.no_grad():
             transformed_image_encoded = self.image_encoded + self.filter_scale * self.attr
             return self.model.decode(transformed_image_encoded).clamp(0.0, 1.0)
 
     def _on_slider_change(self, value: float):
-        print(f"[Demo]_on_slider_change ({value})")
+        print(f"[Demo] _on_slider_change ({value})")
         self.filter_scale = value
         self.desc_label.config(text = f"{self.filter_attr.value}={self.filter_value}\n{self.filter_scale}")
         _set_image(self.transformed_image_label, self._transformed_image())
+
+    def _on_listbox_clicked(self, event):
+        print(f"[Demo] _on_listbox_clicked (event={event})")
+        selection = self.listbox.curselection()
+        if selection:
+            print(f"[Demo] _on_listbox_clicked (selection={selection})")
+            index = selection[0]
+            filter_attr = list(CelebAFeature)[index]
+            if self.filter_attr == filter_attr:
+                self.filter_value = not self.filter_value
+            else:
+                self.filter_attr = filter_attr
+                self.filter_value = True
+            self.desc_label.config(text = f"{self.filter_attr.value}={self.filter_value}\n{self.filter_scale}")
+            self._load_attr()
+            _set_image(self.transformed_image_label, self._transformed_image())
 
     def mainloop(self):
         self.window.mainloop()
@@ -210,8 +241,6 @@ def demo():
         custom_single_dataset_loader = custom_single_dataset_loader,
         latent_vector_path = config.latent_vector_path,
         latent_vector_name = config.latent_vector_name,
-        filter_attr = CelebAFeature.Smiling,
-        filter_value = True,
         device = config.device
     )
     demo_app.mainloop()
