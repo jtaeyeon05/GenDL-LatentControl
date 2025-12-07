@@ -1,9 +1,13 @@
 import os
+
+import PIL.Image
 import torch
 from torchvision.utils import make_grid, save_image
+from torchvision.transforms import transforms
 from tqdm import tqdm
 
 import config
+from core.custom_dataset import align_and_crop_face
 from core.dataset import get_celeba_loader, CelebAFeature
 from core.experiment import save_result_image
 from core.model import VAE, get_vae_model
@@ -73,9 +77,54 @@ def saved_latent_vector_test(
     )
 
 
+def single_image_test(
+        model: VAE,
+        latent_vector_path: str,
+        latent_vector_name: str,
+        filter_attr_list: list[CelebAFeature],
+        filter_value_list: list[bool],
+        scale_list: list[float],
+        image_path: str,
+        image_size: int,
+        output_path: str,
+        device: str = 'cuda' if torch.cuda.is_available() else 'cpu'
+) -> None:
+    attr_len = min(len(filter_attr_list), len(filter_value_list), len(scale_list))
+    attr_list = [
+        load_latent_vector(
+            latent_vector_path = latent_vector_path,
+            latent_vector_name = latent_vector_name,
+            filter_attr = filter_attr_list[i],
+            filter_value = filter_value_list[i]
+        ).to(device) * scale_list[i]
+        for i in range(attr_len)
+    ]
+    if attr_len != 0:
+        attr = torch.sum(torch.stack(attr_list, dim=0), dim=0)
+    print(f"\r[Test] Loaded attribute_vector")
+
+    model.eval()
+
+    transform = transforms.Compose([
+        transforms.Resize((image_size, image_size)),
+        transforms.ToTensor(),
+    ])
+
+    with torch.no_grad():
+        image = PIL.Image.open(image_path).convert("RGB")
+        image = transform(image).to(device).unsqueeze(0)
+        if attr_len == 0:
+            transformed_image = model.decode(model.encode(image)[0])[0].cpu()
+        else:
+            transformed_image = model.decode(model.encode(image)[0] + attr)[0].cpu()
+        transformed_image = transforms.ToPILImage()(transformed_image)
+        transformed_image.save(output_path)
+    print(f"\r[Test] Applied attribute_vector")
+
+
 def reconstruct_test(
         model: VAE,
-        celeba_loader: torch.utils.data.DataLoader,\
+        celeba_loader: torch.utils.data.DataLoader,
         output_path: str,
         device: str = 'cuda' if torch.cuda.is_available() else 'cpu'
     ) -> None:
@@ -162,7 +211,6 @@ def test() -> None:
         output_path = os.path.join(config.output_path, 'test_tmp.png'),
         device = config.device
     )
-    """
     saved_latent_vector_test(
         model = model,
         latent_vector_path = config.latent_vector_path,
@@ -173,6 +221,24 @@ def test() -> None:
         image_size = config.image_size,
         num_repeats = 10,
         output_path = os.path.join(config.output_path, 'test_saved_latent_vector.png'),
+        device = config.device
+    )
+    """
+    align_and_crop_face(
+        os.path.join(config.custom_dataset_path, "raw", "target_new.jpg"),
+        os.path.join(config.custom_dataset_path, "target_new.jpg"),
+        os.path.join(config.project_dir, "model", "etc" , "shape_predictor_68_face_landmarks.dat")
+    )
+    single_image_test(
+        model = model,
+        latent_vector_path = config.latent_vector_path,
+        latent_vector_name = config.latent_vector_name,
+        filter_attr_list = [CelebAFeature.Eyeglasses],
+        filter_value_list = [True],
+        scale_list = [2.25],
+        image_path = os.path.join(config.custom_dataset_path, "target_new.jpg"),
+        image_size = config.image_size,
+        output_path = os.path.join(config.output_path, 'test_single.png'),
         device = config.device
     )
 
