@@ -2,6 +2,8 @@ import os
 
 import PIL.Image
 import torch
+from PIL import ImageDraw, ImageFont
+from torchvision.transforms.functional import to_pil_image
 from torchvision.utils import make_grid, save_image
 from torchvision.transforms import transforms
 from tqdm import tqdm
@@ -99,8 +101,6 @@ def single_image_test(
         ).to(device) * scale_list[i]
         for i in range(attr_len)
     ]
-    if attr_len != 0:
-        attr = torch.sum(torch.stack(attr_list, dim=0), dim=0)
     print(f"\r[Test] Loaded attribute_vector")
 
     model.eval()
@@ -114,12 +114,93 @@ def single_image_test(
         image = PIL.Image.open(image_path).convert("RGB")
         image = transform(image).to(device).unsqueeze(0)
         if attr_len == 0:
-            transformed_image = model.decode(model.encode(image)[0])[0].cpu()
+            transformed_image = model.decode(model.encode(image)[0])[0].clamp(0.0, 1.0).cpu()
         else:
-            transformed_image = model.decode(model.encode(image)[0] + attr)[0].cpu()
+            attr = torch.sum(torch.stack(attr_list, dim=0), dim=0)
+            transformed_image = model.decode(model.encode(image)[0] + attr)[0].clamp(0.0, 1.0).cpu()
         transformed_image = transforms.ToPILImage()(transformed_image)
         transformed_image.save(output_path)
     print(f"\r[Test] Applied attribute_vector")
+
+
+def save_latent_smoothness_test_result_image(
+        images: torch.Tensor,
+        labels: list[str],
+        image_size: int,
+        nrow: int,
+        output_path: str
+) -> None:
+    images = images.detach().cpu()
+    images = torch.cat(
+        [
+            torch.ones(nrow, 3, image_size, image_size, dtype=images.dtype),
+            images
+        ],
+        dim=0
+    )
+
+    grid = make_grid(images, nrow=nrow)
+    grid_pil = to_pil_image(grid)
+
+    width, height = grid_pil.size
+    result_image = PIL.Image.new("RGB", (width, height), (255, 255, 255))
+    result_image.paste(grid_pil, (0, 0))
+
+    draw = ImageDraw.Draw(result_image)
+    font = ImageFont.load_default()
+    for i, label in enumerate(labels):
+        x_position = i * width / nrow
+        draw.text((x_position + 10, 10), label, fill=(0, 0, 0), font=font)
+    result_image.save(output_path)
+    print(f"[Experiment] save_image succeed")
+
+
+def latent_smoothness_test(
+        model: VAE,
+        step: int,
+        image1_path_list: list[str],
+        image2_path_list: list[str],
+        image_size: int,
+        output_path: str,
+        device: str = 'cuda' if torch.cuda.is_available() else 'cpu'
+) -> None:
+    model.eval()
+
+    image_len = min(len(image1_path_list), len(image2_path_list))
+    labels = [
+        f"Image1 * {1 / (step - 1) * (step - i - 1) : .2f}\n" +
+        f"Image2 * {1 / (step - 1) * i : .2f}"
+        for i in range(step)
+    ]
+
+    def encode_image(path: str) -> torch.Tensor:
+        transform = transforms.Compose([
+            transforms.Resize((image_size, image_size)),
+            transforms.ToTensor(),
+        ])
+        image = PIL.Image.open(path).convert("RGB")
+        image = transform(image).unsqueeze(0).to(device)
+        return model.encode(image)[0]
+
+    image1_list = [encode_image(path) for path in image1_path_list]
+    image2_list = [encode_image(path) for path in image2_path_list]
+
+    result_image_list: list[list[torch.Tensor]] = [[torch.tensor([]) for _ in range(step)] for _ in range(image_len)]
+    with torch.no_grad():
+        for row in range(image_len):
+            for i in range(step):
+                image1_weight = 1 / (step - 1) * (step - i - 1)
+                image2_weight = 1 / (step - 1) * i
+                result_image_list[row][i] = model.decode(image1_list[row] * image1_weight + image2_list[row] * image2_weight)[0].clamp(0.0, 1.0).cpu()
+    result_image_list: torch.Tensor = torch.cat([torch.stack(item, dim=0) for item in result_image_list], dim=0)
+
+    save_latent_smoothness_test_result_image(
+        images = result_image_list,
+        labels = labels,
+        image_size = image_size,
+        nrow = step,
+        output_path = output_path
+    )
 
 
 def reconstruct_test(
@@ -223,7 +304,6 @@ def test() -> None:
         output_path = os.path.join(config.output_path, 'test_saved_latent_vector.png'),
         device = config.device
     )
-    """
     align_and_crop_face(
         os.path.join(config.custom_dataset_path, "raw", "target_new.jpg"),
         os.path.join(config.custom_dataset_path, "target_new.jpg"),
@@ -239,6 +319,26 @@ def test() -> None:
         image_path = os.path.join(config.custom_dataset_path, "target_new.jpg"),
         image_size = config.image_size,
         output_path = os.path.join(config.output_path, 'test_single.png'),
+        device = config.device
+    )
+    """
+    latent_smoothness_test(
+        model = model,
+        step = 6,
+        image1_path_list = [
+            os.path.join(config.celeba_image_path, "000471.jpg"),
+            os.path.join(config.celeba_image_path, "000073.jpg"),
+            os.path.join(config.celeba_image_path, "000932.jpg"),
+            os.path.join(config.celeba_image_path, "000681.jpg"),
+        ],
+        image2_path_list = [
+            os.path.join(config.celeba_image_path, "000402.jpg"),
+            os.path.join(config.celeba_image_path, "000213.jpg"),
+            os.path.join(config.celeba_image_path, "000921.jpg"),
+            os.path.join(config.celeba_image_path, "000123.jpg"),
+        ],
+        image_size = config.image_size,
+        output_path = os.path.join(config.output_path, 'test_latent_smoothness.png'),
         device = config.device
     )
 
